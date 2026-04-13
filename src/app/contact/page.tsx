@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { MapPin, Phone, Mail, Clock, Send } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -109,12 +110,11 @@ export default function ContactPage() {
 
                   <div className="space-y-2">
                     <Label htmlFor="message">Message</Label>
-                    <textarea 
+                    <Textarea 
                       id="message" 
-                      className="min-h-[150px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50" 
                       placeholder="How can we help you?"
                       required
-                    ></textarea>
+                    />
                   </div>
 
                   <Button type="submit" className="w-full md:w-auto px-10 h-12" size="lg">
@@ -124,11 +124,16 @@ export default function ContactPage() {
               </CardContent>
             </Card>
 
-            <div className="h-[300px] w-full rounded-3xl bg-slate-200 relative overflow-hidden flex items-center justify-center text-slate-500 font-bold italic shadow-inner">
-               <div className="absolute inset-0 bg-[url('https://api.mapbox.com/styles/v1/mapbox/light-v10/static/80.0,9.6,12/800x300@2x?access_token=mock')] bg-cover bg-center opacity-50" />
-               <div className="relative z-10 bg-white/80 p-4 rounded-xl backdrop-blur-sm border shadow-lg flex flex-col items-center">
+            <div className="h-[300px] w-full rounded-3xl relative overflow-hidden shadow-lg group">
+               <img 
+                 src="/images/contact-map.png" 
+                 alt="Location Map"
+                 className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+               />
+               <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+               <div className="absolute bottom-6 left-6 z-10 bg-white/90 p-4 rounded-xl backdrop-blur-sm border shadow-lg flex flex-col items-center">
                  <MapPin className="h-8 w-8 text-primary mb-2" />
-                 <span className="text-slate-900 not-italic">Jaffna Medical Centre</span>
+                 <span className="text-slate-900 not-italic font-bold">Jaffna Medical Centre</span>
                  <span className="text-xs text-slate-500 not-italic">Hospital Road, Jaffna</span>
                </div>
             </div>

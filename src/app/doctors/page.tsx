@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, Suspense } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { Search, Calendar, User, Star, Filter, Loader2, Stethoscope } from 'lucide-react'
 import { Input } from '@/components/ui/input'
@@ -12,13 +13,24 @@ import { cn } from '@/lib/utils'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
-export default function DoctorsPage() {
+function DoctorsContent() {
+  const searchParams = useSearchParams()
+  const initialSpecialty = searchParams.get('specialty') || 'All'
+  
   const [search, setSearch] = useState('')
-  const [selectedSpecialty, setSelectedSpecialty] = useState('All')
+  const [selectedSpecialty, setSelectedSpecialty] = useState(initialSpecialty)
   const [doctors, setDoctors] = useState<any[]>([])
   const [specialties, setSpecialties] = useState<string[]>(['All'])
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+
+  // Sync selectedSpecialty when query param changes
+  useEffect(() => {
+    const specialty = searchParams.get('specialty')
+    if (specialty) {
+      setSelectedSpecialty(specialty)
+    }
+  }, [searchParams])
 
   useEffect(() => {
     async function fetchData() {
@@ -73,17 +85,37 @@ export default function DoctorsPage() {
     <div className="flex flex-col py-16 lg:py-24 bg-white">
       <div className="container mx-auto px-4">
         {/* Header */}
-        <div className="mb-12 flex flex-col items-center text-center lg:items-start lg:text-left">
-          <motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl"
-          >
-            Meet Our <span className="text-primary">Clinical Specialists</span>
-          </motion.h1>
-          <p className="mt-4 text-lg text-slate-600 max-w-2xl font-medium">
-            Our team of world-class medical professionals is dedicated to providing you with the best care possible in Jaffna.
-          </p>
+        <div className="mb-12 flex flex-col space-y-4 lg:flex-row lg:items-end lg:justify-between">
+          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+            <motion.h1 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-4xl font-extrabold tracking-tight text-slate-900 sm:text-5xl"
+            >
+              Meet Our <span className="text-primary">Clinical Specialists</span>
+            </motion.h1>
+            <p className="mt-4 text-lg text-slate-600 max-w-2xl font-medium">
+              Our team of world-class medical professionals is dedicated to providing you with the best care possible in Jaffna.
+            </p>
+          </div>
+          {selectedSpecialty !== 'All' && (
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="px-4 py-2 bg-primary/5 border border-primary/10 rounded-2xl flex items-center gap-3 self-center lg:self-auto"
+            >
+              <div className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+              <span className="text-sm font-bold text-primary italic">Filtering by {selectedSpecialty}</span>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="h-8 w-8 p-0 rounded-full hover:bg-primary/10 text-primary"
+                onClick={() => setSelectedSpecialty('All')}
+              >
+                ×
+              </Button>
+            </motion.div>
+          )}
         </div>
 
         {/* Filters */}
@@ -105,8 +137,8 @@ export default function DoctorsPage() {
                 variant={selectedSpecialty === spec ? 'default' : 'outline'}
                 size="sm"
                 className={cn(
-                  "shrink-0 rounded-xl px-6 font-bold transition-all",
-                  selectedSpecialty === spec ? "shadow-lg shadow-primary/20" : "border-slate-100 hover:bg-slate-50"
+                   "shrink-0 rounded-xl px-6 font-bold transition-all",
+                   selectedSpecialty === spec ? "shadow-lg shadow-primary/20" : "border-slate-100 hover:bg-slate-50"
                 )}
                 onClick={() => setSelectedSpecialty(spec)}
                >
@@ -134,7 +166,11 @@ export default function DoctorsPage() {
                 <Card className="overflow-hidden border-none shadow-xl shadow-slate-200/50 rounded-[2.5rem] transition-all hover:shadow-2xl hover:-translate-y-1 group bg-white">
                   <div className="h-64 w-full bg-slate-50 relative flex items-center justify-center text-slate-200 overflow-hidden">
                     {doc.image_url ? (
-                      <img src={doc.image_url} alt={doc.profiles?.full_name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" />
+                      <img 
+                        src={doc.image_url} 
+                        alt={doc.profiles?.full_name} 
+                        className="w-full h-full object-contain p-6 group-hover:scale-110 transition-transform duration-500" 
+                      />
                     ) : (
                       <div className="flex flex-col items-center">
                         <Stethoscope className="h-20 w-20 opacity-20" />
@@ -183,5 +219,18 @@ export default function DoctorsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+export default function DoctorsPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex flex-col items-center justify-center min-h-screen text-slate-400 py-24">
+        <Loader2 className="h-12 w-12 animate-spin mb-4 text-primary" />
+        <p className="font-black uppercase tracking-widest text-[10px]">Loading clinical registry</p>
+      </div>
+    }>
+      <DoctorsContent />
+    </Suspense>
   )
 }

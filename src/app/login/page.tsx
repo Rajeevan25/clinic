@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -90,11 +91,10 @@ export default function LoginPage() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label htmlFor="password">Password</Label>
-                  <NextLink href="#" className="text-xs text-primary hover:underline">Forgot password?</NextLink>
+                  <NextLink href="/forgot-password" title="Forgot Password" id="forgot-password-link" className="text-xs text-primary hover:underline">Forgot password?</NextLink>
                 </div>
-                <Input 
+                <PasswordInput 
                   id="password" 
-                  type="password" 
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 

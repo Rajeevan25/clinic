@@ -12,7 +12,17 @@ const fadeInUp = {
 
 export default function AboutPage() {
   return (
-    <div className="flex flex-col py-16 lg:py-24">
+    <div className="flex flex-col py-16 lg:py-24 relative overflow-hidden">
+      {/* Background Decor - Responsive */}
+      <div className="absolute top-0 right-0 -z-10 w-full md:w-1/2 h-[400px] md:h-[600px] opacity-70">
+        <img 
+          src="/images/about-hero.png" 
+          alt="Clinic Building"
+          className="h-full w-full object-cover md:rounded-bl-[100px]"
+        />
+        <div className="absolute inset-0 bg-gradient-to-t md:bg-gradient-to-l from-transparent via-white/50 to-white" />
+      </div>
+
       <div className="container mx-auto px-4">
         {/* Header */}
         <div className="mb-16 text-center lg:text-left">
@@ -88,24 +98,40 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* Story */}
-        <div className="mt-24 rounded-3xl overflow-hidden bg-slate-100 lg:flex items-center">
-          <div className="lg:w-1/2 p-8 lg:p-16">
-            <h2 className="mb-6 text-3xl font-bold text-slate-900">Our Story</h2>
-            <div className="space-y-4 text-lg text-slate-600">
-              <p>
-                Founded in 2010, Jaffna Medical Centre was born from a vision to bring premium healthcare services to the North. 
-                What started as a small outpatient clinic has grown into a multi-specialty center serving thousands of residents.
-              </p>
-              <p>
-                Over the years, we have invested in state-of-the-art diagnostic equipment, modern laboratory facilities, and a team of 
-                highly qualified consultants from across the country.
-              </p>
-            </div>
+        <div className="mt-24 rounded-3xl overflow-hidden bg-slate-100 flex flex-col-reverse lg:flex-row items-stretch">
+          <div className="lg:w-1/2 p-8 lg:p-16 flex flex-col justify-center">
+            <motion.div
+              initial={{ opacity: 0, x: -20 }}
+              whileInView={{ opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+            >
+              <h2 className="mb-6 text-3xl font-bold text-slate-900">Our Story</h2>
+              <div className="space-y-4 text-lg text-slate-600">
+                <p>
+                  Founded in 2010, Jaffna Medical Centre was born from a vision to bring premium healthcare services to the North. 
+                  What started as a small outpatient clinic has grown into a multi-specialty center serving thousands of residents.
+                </p>
+                <p>
+                  Over the years, we have invested in state-of-the-art diagnostic equipment, modern laboratory facilities, and a team of 
+                  highly qualified consultants from across the country.
+                </p>
+              </div>
+            </motion.div>
           </div>
-          <div className="lg:w-1/2 aspect-square lg:aspect-auto h-64 lg:h-full bg-slate-300 flex items-center justify-center text-slate-500 italic font-bold">
-            [ Clinic History / Team Image ]
-          </div>
+          <motion.div 
+            className="lg:w-1/2 min-h-[300px] lg:min-h-0 relative"
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <img 
+              src="/images/about-story.png" 
+              alt="Medical Team"
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          </motion.div>
         </div>
       </div>
     </div>

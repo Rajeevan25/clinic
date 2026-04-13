@@ -20,11 +20,14 @@ import { buttonVariants } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useParams, usePathname, useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { SidebarContent } from "@/components/layout/Sidebar"
+
 
 import { format } from 'date-fns'
 
 interface DashboardNavbarProps {
-  role: 'admin' | 'doctor'
+  role: 'admin' | 'doctor' | 'patient'
 }
 
 export function DashboardNavbar({ role }: DashboardNavbarProps) {
@@ -33,6 +36,7 @@ export function DashboardNavbar({ role }: DashboardNavbarProps) {
   const [profile, setProfile] = useState<any>(null)
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
   const supabase = createClient()
 
   // Generate breadcrumbs from pathname
@@ -47,40 +51,54 @@ export function DashboardNavbar({ role }: DashboardNavbarProps) {
 
   useEffect(() => {
     let channel: any;
+    let isMounted = true;
 
     async function initialize() {
       const { data: { user } } = await supabase.auth.getUser()
-      if (user) {
-        const { data: prof } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
+      
+      if (!user || !isMounted) return;
+
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      
+      if (isMounted) {
         setProfile(prof)
+      }
 
-        // Initial Notification Fetch
-        const { data: notifs } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5)
-        
-        if (notifs) {
-          setNotifications(notifs)
-          setUnreadCount(notifs.filter(n => !n.is_read).length)
-        }
+      // Initial Notification Fetch
+      const { data: notifs } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(5)
+      
+      if (notifs && isMounted) {
+        setNotifications(notifs)
+        setUnreadCount(notifs.filter(n => !n.is_read).length)
+      }
 
-        // Real-time notifications
+      // Real-time notifications
+      if (isMounted) {
+        // Unique channel name per mount prevents Supabase from returning an
+        // already-subscribed channel object (which causes the "cannot add
+        // postgres_changes callbacks after subscribe()" error in Strict Mode).
+        const channelName = `dashboard-notifs-${user.id}-${Date.now()}`
         channel = supabase
-          .channel(`dashboard-notifs-${user.id}`)
+          .channel(channelName)
           .on(
             'postgres_changes',
             { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
             (payload) => {
-              setNotifications(prev => [payload.new, ...prev.slice(0, 4)])
-              setUnreadCount(prev => prev + 1)
-              toast.info('New clinical alert received')
+              if (isMounted) {
+                const newNotif = payload.new
+                setNotifications(prev => [newNotif, ...prev.slice(0, 4)])
+                setUnreadCount(prev => prev + 1)
+                toast.info(newNotif.title || 'New clinical alert received')
+              }
             }
           )
           .subscribe()
@@ -90,6 +108,7 @@ export function DashboardNavbar({ role }: DashboardNavbarProps) {
     initialize()
 
     return () => {
+      isMounted = false
       if (channel) {
         supabase.removeChannel(channel)
       }
@@ -122,6 +141,16 @@ export function DashboardNavbar({ role }: DashboardNavbarProps) {
     <header className="h-20 bg-white/80 backdrop-blur-md border-b border-slate-100 flex items-center justify-between px-8 sticky top-0 z-30 transition-all">
       {/* Left: Breadcrumbs & Mobile Toggle */}
       <div className="flex items-center gap-4">
+        {/* Mobile Sidebar Trigger */}
+        <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+          <SheetTrigger render={<Button variant="ghost" size="icon" className="lg:hidden h-10 w-10 rounded-xl hover:bg-slate-100" />}>
+            <Menu className="h-6 w-6 text-slate-600" />
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 border-none">
+            <SidebarContent role={role} onClose={() => setIsMobileMenuOpen(false)} />
+          </SheetContent>
+        </Sheet>
+
         <nav className="hidden md:flex items-center gap-2 text-sm font-bold">
            {breadcrumbs.map((crumb, idx) => (
              <React.Fragment key={crumb.href}>
@@ -170,18 +199,21 @@ export function DashboardNavbar({ role }: DashboardNavbarProps) {
                 ) : notifications.map(notif => (
                   <div key={notif.id} className={cn("p-4 border-b border-slate-50 relative group transition-colors", !notif.is_read ? "bg-blue-50/20" : "hover:bg-slate-50/50")}>
                      {!notif.is_read && <div className="absolute left-1 top-1/2 -translate-y-1/2 w-1 h-4 rounded-full bg-primary" />}
-                     <p className={cn("text-xs leading-relaxed mb-2", !notif.is_read ? "font-bold text-slate-900" : "text-slate-500 font-medium")}>{notif.message}</p>
+                     <div className="flex flex-col gap-1 mb-2">
+                        {notif.title && <p className={cn("text-xs font-black uppercase tracking-tight", !notif.is_read ? "text-slate-900" : "text-slate-500")}>{notif.title}</p>}
+                        <p className={cn("text-xs leading-relaxed", !notif.is_read ? "font-bold text-slate-800" : "text-slate-400 font-medium")}>{notif.message}</p>
+                     </div>
                      <div className="flex items-center justify-between">
                         <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">
                            {format(new Date(notif.created_at), 'MMM dd • HH:mm')}
                         </span>
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                            {!notif.is_read && (
-                             <button onClick={() => markAsRead(notif.id)} className="p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm hover:text-green-600">
+                             <button onClick={() => markAsRead(notif.id)} className="p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm hover:text-green-600 transition-colors">
                                 <Check className="h-3 w-3" />
                              </button>
                            )}
-                           <button onClick={() => deleteNotif(notif.id)} className="p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm hover:text-red-600">
+                           <button onClick={() => deleteNotif(notif.id)} className="p-1.5 bg-white rounded-lg border border-slate-100 shadow-sm hover:text-red-600 transition-colors">
                               <Trash2 className="h-3 w-3" />
                            </button>
                         </div>

@@ -39,70 +39,83 @@ export function Navbar() {
   const [profile, setProfile] = useState<any>(null)
   const [notifications, setNotifications] = useState<any[]>([])
   const [unreadCount, setUnreadCount] = useState(0)
-  const supabase = createClient()
+  // Stable client reference — createClient() must not run on every render
+  const [supabase] = useState(() => createClient())
 
   useEffect(() => {
-    const getUser = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUser(user)
-      if (user) {
-        const { data: profileData } = await supabase
-          .from('profiles')
-          .select('*')
-          .eq('id', user.id)
-          .single()
-        setProfile(profileData)
-        setRole(profileData?.role || 'patient')
-      } else {
-        setProfile(null)
-        setRole(null)
+    let isMounted = true
+    let channel: ReturnType<typeof supabase.channel> | null = null
+
+    const loadUserData = async (currentUser: any) => {
+      if (!currentUser || !isMounted) return
+
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', currentUser.id)
+        .single()
+
+      if (!isMounted) return
+      setProfile(profileData)
+      setRole(profileData?.role || 'patient')
+
+      const { data: notifData } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', currentUser.id)
+        .order('created_at', { ascending: false })
+        .limit(10)
+
+      if (!isMounted) return
+      if (notifData) {
+        setNotifications(notifData)
+        setUnreadCount(notifData.filter((n: any) => !n.is_read).length)
       }
-    }
-    getUser()
 
-    if (user) {
-      // Fetch Notifications
-      const fetchNotifications = async () => {
-        const { data, error } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(10)
-
-        if (data) {
-          setNotifications(data)
-          setUnreadCount(data.filter(n => !n.is_read).length)
-        }
-      }
-      fetchNotifications()
-
-      // Real-time subscription
-      const channel = supabase
-        .channel('schema-db-changes')
+      // Unique channel name per mount avoids reusing an already-subscribed channel
+      channel = supabase
+        .channel(`navbar-notifs-${currentUser.id}-${Date.now()}`)
         .on(
           'postgres_changes',
-          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${user.id}` },
+          { event: 'INSERT', schema: 'public', table: 'notifications', filter: `user_id=eq.${currentUser.id}` },
           (payload) => {
-            setNotifications(prev => [payload.new, ...prev])
-            setUnreadCount(prev => prev + 1)
-            toast.info('New notification received')
+            if (isMounted) {
+              setNotifications(prev => [payload.new, ...prev])
+              setUnreadCount(prev => prev + 1)
+              toast.info('New notification received')
+            }
           }
         )
         .subscribe()
-
-      return () => {
-        supabase.removeChannel(channel)
-      }
     }
-  }, [user, supabase])
 
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null)
+    // getSession() reads from storage without acquiring a lock (safe in Strict Mode)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return
+      const currentUser = session?.user || null
+      setUser(currentUser)
+      loadUserData(currentUser)
     })
-    return () => subscription.unsubscribe()
-  }, [supabase])
+
+    // Keep user state in sync with auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return
+      const currentUser = session?.user || null
+      setUser(currentUser)
+      if (!currentUser) {
+        setProfile(null)
+        setRole(null)
+        setNotifications([])
+        setUnreadCount(0)
+      }
+    })
+
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+      if (channel) supabase.removeChannel(channel)
+    }
+  }, [])
 
   const markAsRead = async (id: string) => {
     const { error } = await supabase

@@ -1,5 +1,7 @@
 'use client'
 
+import { DashboardNavbar } from '@/components/layout/DashboardNavbar'
+
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -78,22 +80,25 @@ export default function PatientDashboard() {
 
   return (
     <div className="min-h-screen bg-slate-50/50 pb-20 text-slate-900">
+      <DashboardNavbar role="patient" />
+      
       {/* Header / Welcome Section */}
-      <div className="bg-white border-b">
-        <div className="container mx-auto px-4 py-8">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                <User className="h-8 w-8" />
+      <div className="bg-white border-b border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-primary/5 rounded-full -mr-32 -mt-32 blur-3xl" />
+        <div className="container mx-auto px-4 py-12 relative z-10">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-8">
+            <div className="flex items-center space-x-6">
+              <div className="h-20 w-20 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+                <User className="h-10 w-10 font-black" />
               </div>
               <div>
-                <h1 className="text-3xl font-bold tracking-tight">Patient Dashboard</h1>
-                <p className="text-slate-500 font-medium mt-1">
-                  Welcome back, <span className="text-slate-900">{profile?.full_name || 'User'}</span>
+                <h1 className="text-4xl font-black tracking-tight text-slate-900">Patient Dashboard</h1>
+                <p className="text-slate-500 font-bold mt-2 text-lg">
+                  Welcome back, <span className="text-primary font-black uppercase tracking-wide">{profile?.full_name?.split(' ')[0] || 'Member'}</span>
                 </p>
               </div>
             </div>
-            <Link href="/book" className={buttonVariants({ className: "h-12 px-6 rounded-xl" })}>
+            <Link href="/book" className={buttonVariants({ className: "h-14 px-8 rounded-2xl bg-primary text-white shadow-xl shadow-primary/20 font-black uppercase tracking-widest text-xs hover:scale-105 transition-transform" })}>
               <PlusCircle className="mr-2 h-5 w-5" /> Book New Appointment
             </Link>
           </div>

@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { PasswordInput } from '@/components/ui/password-input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card'
 import { toast } from 'sonner'
@@ -112,9 +113,8 @@ export default function RegisterPage() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="space-y-2">
                         <Label htmlFor="password">Password</Label>
-                        <Input 
+                        <PasswordInput 
                           id="password" 
-                          type="password" 
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
                           required 
@@ -122,9 +122,8 @@ export default function RegisterPage() {
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="confirmPassword">Confirm Password</Label>
-                        <Input 
+                        <PasswordInput 
                           id="confirmPassword" 
-                          type="password" 
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
                           required 

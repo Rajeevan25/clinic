@@ -67,9 +67,19 @@ export default function Home() {
   return (
     <div className="flex flex-col">
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-white py-20 lg:py-32">
+      <section className="relative w-full overflow-hidden py-20 lg:py-32">
+        {/* Hero Background Image */}
+        <div className="absolute inset-0 -z-20 w-full overflow-hidden">
+          <img 
+            src="/images/home-hero.png" 
+            alt="Medical Centre"
+            className="h-full w-full object-cover object-center"
+          />
+          <div className="absolute inset-0 bg-white/70" />
+          <div className="absolute inset-0 bg-gradient-to-tr from-white via-white/40 to-transparent" />
+        </div>
         <div className="container relative z-10 mx-auto px-4">
-          <div className="flex flex-col items-center text-center lg:items-start lg:text-left">
+          <div className="flex flex-col items-center text-center">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -112,10 +122,7 @@ export default function Home() {
           </div>
         </div>
         
-        {/* Background Decoration */}
-        <div className="absolute right-0 top-0 -z-10 h-full w-1/3 bg-slate-50 lg:block hidden">
-           <div className="absolute inset-0 bg-gradient-to-l from-primary/5 to-transparent" />
-        </div>
+        {/* Background Decoration removed as it was obscuring the hero image */}
       </section>
 
       {/* Stats Section */}
@@ -221,10 +228,11 @@ export default function Home() {
             </div>
             
             <div className="relative aspect-video overflow-hidden rounded-2xl bg-white/10 shadow-2xl backdrop-blur-sm p-1">
-               {/* Mock Image Placeholder */}
-               <div className="h-full w-full rounded-xl bg-gradient-to-br from-slate-200 to-slate-300 flex items-center justify-center text-slate-500 font-bold italic">
-                 [ Modern Clinic Interior Image ]
-               </div>
+               <img 
+                 src="/images/clinic-interior.png" 
+                 alt="Modern Clinic Interior"
+                 className="h-full w-full rounded-xl object-cover"
+               />
             </div>
           </div>
         </div>
@@ -242,7 +250,7 @@ export default function Home() {
               <Link href="/book" className={cn(buttonVariants({ size: "lg", variant: "default" }), "bg-primary hover:bg-primary/90 text-white h-14 px-10 text-lg")}>
                 Book Now
               </Link>
-              <Link href="/contact" className={cn(buttonVariants({ size: "lg", variant: "outline" }), "border-white/20 text-white hover:bg-white/10 h-14 px-10 text-lg underline")}>
+              <Link href="/contact" className={cn(buttonVariants({ size: "lg", variant: "default" }), "bg-primary hover:bg-primary/90 text-white h-14 px-10 text-lg")}>
                 Contact Support
               </Link>
             </div>

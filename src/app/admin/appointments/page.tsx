@@ -15,7 +15,8 @@ import {
   Filter,
   MoreVertical,
   Check,
-  PlusCircle
+  PlusCircle,
+  Bell
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
@@ -31,11 +32,26 @@ import { createClient } from '@/lib/supabase/client'
 import { updateAppointmentStatusAction, deleteAppointmentAction } from '@/app/admin/appointments/actions'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { sendNotificationAction } from '@/app/actions/notifications'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 export default function AppointmentsPage() {
   const [appointments, setAppointments] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [filterStatus, setFilterStatus] = useState<string>('all')
+  const [isNotifyDialogOpen, setIsNotifyDialogOpen] = useState(false)
+  const [selectedPatient, setSelectedPatient] = useState<any>(null)
+  const [notifData, setNotifData] = useState({ title: '', message: '', type: 'info' })
+  const [isSending, setIsSending] = useState(false)
   const supabase = createClient()
 
   const fetchAppointments = async () => {
@@ -119,6 +135,30 @@ export default function AppointmentsPage() {
     pending: 'text-amber-600 bg-amber-50 border-amber-200',
     cancelled: 'text-red-600 bg-red-50 border-red-200',
     completed: 'text-blue-600 bg-blue-50 border-blue-200',
+  }
+
+  const handleSendNotification = async () => {
+    if (!selectedPatient || !notifData.title || !notifData.message) {
+      toast.error('Please fill all fields')
+      return
+    }
+
+    setIsSending(true)
+    const result = await sendNotificationAction(
+      selectedPatient.id,
+      notifData.title,
+      notifData.message,
+      notifData.type
+    )
+    setIsSending(false)
+
+    if (result.success) {
+      toast.success('Notification sent to patient')
+      setIsNotifyDialogOpen(false)
+      setNotifData({ title: '', message: '', type: 'info' })
+    } else {
+      toast.error('Failed to send notification: ' + result.error)
+    }
   }
 
   return (
@@ -263,13 +303,28 @@ export default function AppointmentsPage() {
                                  <DropdownMenuItem onClick={() => handleStatusChange(appt, 'completed')} className="gap-2">
                                     <Check className="h-4 w-4 text-blue-600" /> Mark Completed
                                  </DropdownMenuItem>
-                                 <DropdownMenuItem onClick={() => handleStatusChange(appt, 'cancelled')} className="gap-2 text-red-600">
-                                    <XCircle className="h-4 w-4" /> Cancel Session
-                                 </DropdownMenuItem>
-                                 <div className="h-px bg-slate-100 my-1" />
-                                 <DropdownMenuItem onClick={() => handleDelete(appt.id)} className="gap-2 text-red-600">
-                                    <Trash2 className="h-4 w-4" /> Delete Record
-                                 </DropdownMenuItem>
+                                  <DropdownMenuItem onClick={() => handleStatusChange(appt, 'cancelled')} className="gap-2 text-red-600">
+                                     <XCircle className="h-4 w-4" /> Cancel Session
+                                  </DropdownMenuItem>
+                                  <div className="h-px bg-slate-100 my-1" />
+                                  <DropdownMenuItem 
+                                    onClick={() => {
+                                      setSelectedPatient({ id: appt.patient_id, name: appt.patient?.full_name })
+                                      setNotifData({
+                                        title: 'Update regarding your appointment',
+                                        message: `Hello ${appt.patient?.full_name || 'Patient'}, `,
+                                        type: 'info'
+                                      })
+                                      setIsNotifyDialogOpen(true)
+                                    }} 
+                                    className="gap-2 text-primary focus:text-primary"
+                                  >
+                                     <Bell className="h-4 w-4" /> Send Notification
+                                  </DropdownMenuItem>
+                                  <div className="h-px bg-slate-100 my-1" />
+                                  <DropdownMenuItem onClick={() => handleDelete(appt.id)} className="gap-2 text-red-600">
+                                     <Trash2 className="h-4 w-4" /> Delete Record
+                                  </DropdownMenuItem>
                                </DropdownMenuContent>
                              </DropdownMenu>
                           </div>
@@ -282,6 +337,61 @@ export default function AppointmentsPage() {
             )}
           </CardContent>
         </Card>
+
+      {/* Notify Dialog */}
+      <Dialog open={isNotifyDialogOpen} onOpenChange={setIsNotifyDialogOpen}>
+        <DialogContent className="sm:max-w-[500px] rounded-3xl border-none shadow-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl font-black text-slate-900 tracking-tight">Send Notification</DialogTitle>
+            <DialogDescription className="font-medium text-slate-500">
+              Sending to: <span className="text-primary font-bold">{selectedPatient?.name}</span>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="grid gap-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Alert Title</Label>
+              <Input 
+                value={notifData.title} 
+                onChange={(e) => setNotifData({...notifData, title: e.target.value})}
+                placeholder="e.g., Appointment Update"
+                className="h-12 rounded-2xl bg-slate-50 border-none font-bold focus:ring-2 focus:ring-primary/10 transition-all"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Message</Label>
+              <textarea 
+                className="min-h-[120px] rounded-2xl bg-slate-50 border-none p-4 font-medium text-sm focus:ring-2 focus:ring-primary/10 transition-all outline-none"
+                value={notifData.message}
+                onChange={(e) => setNotifData({...notifData, message: e.target.value})}
+                placeholder="Write your clinical alert message here..."
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label className="text-xs font-black uppercase tracking-widest text-slate-400 ml-1">Type</Label>
+              <div className="flex gap-2">
+                 {['info', 'warning', 'success', 'error'].map(t => (
+                   <button
+                    key={t}
+                    onClick={() => setNotifData({...notifData, type: t})}
+                    className={cn(
+                      "px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all",
+                      notifData.type === t ? "bg-primary text-white shadow-lg shadow-primary/20 scale-105" : "bg-slate-50 text-slate-400 hover:bg-slate-100"
+                    )}
+                   >
+                     {t}
+                   </button>
+                 ))}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="ghost" onClick={() => setIsNotifyDialogOpen(false)} className="rounded-xl font-bold text-slate-400">Cancel</Button>
+            <Button onClick={handleSendNotification} disabled={isSending} className="rounded-xl px-8 font-black uppercase tracking-widest text-xs h-12">
+              {isSending ? 'Sending...' : 'Transmit Alert'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
